@@ -40,10 +40,10 @@ typedef struct LCD_structure
 #define ST7789_Width 240
 #define ST7789_Height 240
 
-//#define RGB565(r, g, b)         (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3))
+#define RGB565(r, g, b)         (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3))
 
-#define RGB565(r, g, b)         (((b & 0x1F) << 8) | ((g & 0x7) << 13)| ((g & 0x38)>>3)| ((r & 0x1F) << 3))
-
+//#define RGB565(r, g, b)         (((b & 0x1F) << 8) | ((g & 0x7) << 13)| ((g & 0x38)>>3)| ((r & 0x1F) << 3))
+#define HUE(h)  ({ typeof(h) h1 = h % 360; h1 < 0 ? 360 + h1 : h1; })
 // Базовые цвета
 #define BLACK    0x0000
 #define BLUE     0x001F
@@ -145,6 +145,7 @@ void ST7789_DrawPartYX(int16_t x, int16_t y, int16_t w, int16_t h,
 // Процедура заполнения прямоугольной области из буфера. Порядок заполнения экрана X - Y
 void ST7789_DrawPartXY(int16_t x, int16_t y, int16_t w, int16_t h,
 	uint16_t *pBuff, LCD_str *lcd);
+u16 HSV_to_RGB565(u16 hsv_h, u16 hsv_s, u8 hsv_v);
 void ST7789_Init(LCD_str *lcd);
 
 #endif /* INC_ST7789_H_ */

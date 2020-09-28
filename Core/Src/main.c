@@ -28,11 +28,42 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "st7789.h"
+#include "perlin_noise.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+void uart_send_char(u8 val)
+    {
+    HAL_UART_Transmit(&huart3, &val, 1, 0xFFFF);
+    }
+
+void Uart_IntWrite(s32 value)
+    {
+    s32 i;
+
+    if (value < 0)
+	{
+	uart_send_char('-');
+	value = -value;
+	}
+
+    i = 1;
+    while ((value / i) > 9)
+	{
+	i *= 10;
+	}
+
+    uart_send_char(value / i + '0'); /* Display at least one symbol */
+    i /= 10;
+
+    while (i > 0)
+	{
+	uart_send_char('0' + ((value % (i * 10)) / i));
+	i /= 10;
+	}
+    }
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -68,7 +99,6 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-volatile u16 dat = 0;
 LCD_str LCD1;
 LCD_str LCD2;
 /* USER CODE END PFP */
@@ -138,12 +168,34 @@ int main(void)
     HAL_Delay(500);
     ST7789_Init(&LCD2);
 //  SPI3->I2SCFGR |= SPI_I2SCFGR_CKPOL;
-    //HAL_I2S_Receive_DMA(&hi2s3,&PCM_rx_buf[0], 128);
+//HAL_I2S_Receive_DMA(&hi2s3,&PCM_rx_buf[0], 128);
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-    u16 i = 1;
+    // u16 i = 1;
+    for (volatile u16 x = 0; x < 240; x++)
+	{
+	for (u16 y = 0; y < 240; y++)
+	    {
+	    u8 r = (u8) ((Noise(x * 0.01, y * 0.01) + 0.5) * 0xF7);
+	    u8 g = (u8) ((Noise(x * 0.1, y * 0.1) + 0.5) * 0xF7);
+	    u8 b = (u8) ((Noise(x * 0.03, y * 0.03) + 0.5) * 0xF7);
+
+	    ST7789_DrawPixel(x, y,
+		    RGB565(Noise_treshold(r, 200, 250, -100, 255),
+			    Noise_treshold(r, 150, 200, 255, 0),
+			    Noise_treshold(r, 0, 150, 255, 0)), &LCD1);
+//	    ST7789_DrawPixel(x, y,
+//		    HSV_to_RGB565(
+//			    Noise_combine(0.1, 0, 0.51, 0, 0.03, 0.7, 360, x, y)
+//				    , 255, 220), &LCD1);
+	    ST7789_DrawPixel(x, y,
+		    HSV_to_RGB565(250, 200,
+			    Noise_combine(0.1, 0, 0.51, 0, 0.017, 1, 255, x,
+				    y)), &LCD2);
+	    }
+	}
     while (1)
 	{
 //	HAL_I2S_Receive(&hi2s3, &PCM_rx_buf[0], sizeof(PCM_rx_buf), 0xFF);
@@ -155,39 +207,39 @@ int main(void)
 //		LD3_GPIO_Port->ODR |= LD3_Pin;
 //		}
 //	    }
-	switch (i)
-	    {
-	case 1:
-	    i = 2;
-	    ST7789_FillScreen(RGB565(0xFF, 0, 0), &LCD1);
-	    // HAL_Delay(500);
-	    ST7789_FillScreen(RGB565(0xFF, 0, 0), &LCD2);
-	    HAL_Delay(500);
-	    break;
-	case 2:
-	    i = 3;
-	    ST7789_FillScreen(RGB565(0, 0xFF, 0), &LCD1);
-	    // HAL_Delay(500);
-	    ST7789_FillScreen(RGB565(0, 0xFF, 0), &LCD2);
-	    HAL_Delay(500);
-	    break;
-	case 3:
-	    i = 4;
-	    ST7789_FillScreen(RGB565(0, 0, 0xFF), &LCD1);
-	    //HAL_Delay(500);
-	    ST7789_FillScreen(RGB565(0, 0, 0xFF), &LCD2);
-	    HAL_Delay(500);
-	    break;
-	case 4:
-	    i = 1;
-	    ST7789_FillScreen(RGB565(0, 0xFF, 0xFF), &LCD1);
-	    //   HAL_Delay(500);
-	    ST7789_FillScreen(RGB565(0, 0xFF, 0xFF), &LCD2);
-	    HAL_Delay(500);
-	    break;
-	default:
-	    break;
-	    }
+//	switch (i)
+//	    {
+//	case 1:
+//	    i = 2;
+//	    ST7789_FillScreen(RGB565(0xFF, 0, 0), &LCD1);
+//	    // HAL_Delay(500);
+//	    ST7789_FillScreen(RGB565(0xFF, 0, 0), &LCD2);
+//	    HAL_Delay(500);
+//	    break;
+//	case 2:
+//	    i = 3;
+//	    ST7789_FillScreen(RGB565(0, 0xFF, 0), &LCD1);
+//	    // HAL_Delay(500);
+//	    ST7789_FillScreen(RGB565(0, 0xFF, 0), &LCD2);
+//	    HAL_Delay(500);
+//	    break;
+//	case 3:
+//	    i = 4;
+//	    ST7789_FillScreen(RGB565(0, 0, 0xFF), &LCD1);
+//	    //HAL_Delay(500);
+//	    ST7789_FillScreen(RGB565(0, 0, 0xFF), &LCD2);
+//	    HAL_Delay(500);
+//	    break;
+//	case 4:
+//	    i = 1;
+//	    ST7789_FillScreen(RGB565(0, 0xFF, 0xFF), &LCD1);
+//	    //   HAL_Delay(500);
+//	    ST7789_FillScreen(RGB565(0, 0xFF, 0xFF), &LCD2);
+//	    HAL_Delay(500);
+//	    break;
+//	default:
+//	    break;
+//	    }
 
 	/* USER CODE END WHILE */
 

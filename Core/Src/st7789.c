@@ -163,7 +163,8 @@ void ST7789_RamWrite(uint16_t *pBuff, uint16_t Len, LCD_str *lcd)
     while (__HAL_SPI_GET_FLAG(lcd->spi_str, SPI_FLAG_TXP) == 0)
 	;
     lcd->LCD_dc_port->ODR |= lcd->LCD_dc_pin;
-    HAL_SPI_Transmit(lcd->spi_str, ((u8*) pBuff), Len * 2, 0xFFFF);
+    HAL_SPI_Transmit(lcd->spi_str, ((u8*) pBuff + 1), Len, 0xFFFF);
+    HAL_SPI_Transmit(lcd->spi_str, ((u8*) pBuff), Len, 0xFFFF);
     }
 
 //==============================================================================
@@ -335,6 +336,34 @@ void ST7789_FillScreen(uint16_t color, LCD_str *lcd)
     }
 //==============================================================================
 
+u16 HSV_to_RGB565(u16 hsv_h, u16 hsv_s, u8 hsv_v)
+    {
+    u8 r, g, b;
+    // @formatter:off
+    if (hsv_s > 0xFF){hsv_s = 0xFF;}
+    int hue = HUE(hsv_h);
+
+    int sector = hue / 60;
+    int angle = sector & 1 ? 60 - hue % 60 : hue % 60;
+
+    int high = hsv_v;
+    int low = (255 - hsv_s) * high / 255;
+    int middle = low + (high - low) * angle / 60;
+
+    switch (sector)
+	{
+    case 0: r = high;g = middle;b = low;break;// red -> yellow
+    case 1:r = middle;g = high;b = low;break; // yellow -> green
+    case 2: r = low;g = high;b = middle;break;// green -> cyan
+    case 3: r = low;g = middle;b = high;break;// cyan -> blue
+    case 4: r = middle;g = low;b = high;break;// blue -> magenta
+    case 5: r = high;g = low;b = middle;break;// magenta -> red
+    default:
+	break;
+	}
+    // @formatter:on
+    return RGB565(r, g, b);
+    }
 //==============================================================================
 // Процедура инициализации дисплея
 //==============================================================================
