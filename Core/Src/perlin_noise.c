@@ -6,6 +6,7 @@
  */
 
 #include "perlin_noise.h"
+#include "st7789.h"
 
 typedef struct FLOAT2
     {
@@ -125,12 +126,27 @@ float Noise(float fx, float fy)
     return tb;
     }
 
+float Noise_simple(float k, u16 x, u16 y)
+    {
+    return (Noise(x * k, y * k) + 1.0) / 2.0;
+    }
+
 u16 Noise_combine(float a, float ak, float b, float bk, float c, float ck,
 	u16 map, u16 x, u16 y)
     {
-    float a_val = Noise(x * a, y * a) + 0.5;
-    float b_val = Noise(x * b, y * b) + 0.5;
-    float c_val = Noise(x * c, y * c) + 0.5;
+    float a_val, b_val, c_val;
+    if (ak != 0.0)
+	{
+	a_val = Noise(x * a, y * a) + 1.0;
+	}
+    if (bk != 0.0)
+	{
+	b_val = Noise(x * b, y * b) + 1.0;
+	}
+    if (ck != 0.0)
+	{
+	c_val = Noise(x * c, y * c) + 1.0;
+	}
 
     return (u16) (((a_val * ak) + (b_val * bk) + (c_val * ck)) * (float) map);
     }
@@ -143,4 +159,50 @@ u16 Noise_treshold(float in, float min, float max, float map, float bias)
 	return (u16) ((in - min) * (map / d) + bias);
 	}
     return 0;
+    }
+
+void Generate_NoiseLine(float x, float y, u16 *buf)
+    {
+    //	    for (u32 j = 0; j < 240; j++)
+    //		{
+    //		color_buf[j] = HSV_to_RGB565(
+    //			Noise_combine(0.1, 0.1, 0.051, 0,
+    //				0.017 * (((float) y_ord) / 500.0), 0.8, 360, i,
+    //				j + 240), 255,
+    //			Noise_simple(0.05, i, j + 240) * 255);
+    //
+    u16 h = 0;
+    u16 s = 0;
+    u16 v = 0;
+    for (u32 j = 0; j < 240; j++)
+	{
+
+	volatile float place = Noise_simple(0.012, x, y + j) * 0.9
+		+ Noise_simple(0.1, x, y + j) * 0.1;
+	if ((place > 0.0) && (place <= 0.35))
+	    {
+	    h = Noise_simple(0.07, x, y + j) * 80;    //лава
+	    s = 255;
+	    v = 255;
+	    }
+	else if ((place > 0.35) && (place <= 0.45))    //камень
+	    {
+	    h = 0;
+	    s = 0;
+	    v = Noise_simple(0.03, x, y + j) * 30;
+	    }
+	else if ((place > 0.45) && (place <= 0.60))    //лес
+	    {
+	    h = Noise_simple(0.02, x, y + j) * 80 + 70;
+	    s = 255;
+	    v = Noise_simple(0.03, x, y + j) * 150 + 50;
+	    }
+	else
+	    {
+	    h = Noise_simple(0.1, x, y + j) * 100 + 180;
+	    s = 250;
+	    v = 200;
+	    }
+	buf[j] = HSV_to_RGB565(h, s, v);
+	}
     }

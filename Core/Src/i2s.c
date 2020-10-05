@@ -25,6 +25,7 @@
 /* USER CODE END 0 */
 
 I2S_HandleTypeDef hi2s3;
+DMA_HandleTypeDef hdma_spi3_rx;
 
 /* I2S3 init function */
 void MX_I2S3_Init(void)
@@ -39,7 +40,7 @@ void MX_I2S3_Init(void)
   hi2s3.Init.CPOL = I2S_CPOL_LOW;
   hi2s3.Init.FirstBit = I2S_FIRSTBIT_MSB;
   hi2s3.Init.WSInversion = I2S_WS_INVERSION_DISABLE;
-  hi2s3.Init.Data24BitAlignment = I2S_DATA_24BIT_ALIGNMENT_RIGHT;
+  hi2s3.Init.Data24BitAlignment = I2S_DATA_24BIT_ALIGNMENT_LEFT;
   hi2s3.Init.MasterKeepIOState = I2S_MASTER_KEEP_IO_STATE_DISABLE;
   if (HAL_I2S_Init(&hi2s3) != HAL_OK)
   {
@@ -65,6 +66,7 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef* i2sHandle)
     /**I2S3 GPIO Configuration
     PA4     ------> I2S3_WS
     PC10     ------> I2S3_CK
+    PC11     ------> I2S3_SDI
     PC12     ------> I2S3_SDO
     */
     GPIO_InitStruct.Pin = GPIO_PIN_4;
@@ -74,7 +76,7 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef* i2sHandle)
     GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_10;
+    GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -87,6 +89,25 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef* i2sHandle)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    /* I2S3 DMA Init */
+    /* SPI3_RX Init */
+    hdma_spi3_rx.Instance = DMA1_Stream2;
+    hdma_spi3_rx.Init.Request = DMA_REQUEST_SPI3_RX;
+    hdma_spi3_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_spi3_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_spi3_rx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_spi3_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    hdma_spi3_rx.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+    hdma_spi3_rx.Init.Mode = DMA_CIRCULAR;
+    hdma_spi3_rx.Init.Priority = DMA_PRIORITY_LOW;
+    hdma_spi3_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    if (HAL_DMA_Init(&hdma_spi3_rx) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(i2sHandle,hdmarx,hdma_spi3_rx);
 
   /* USER CODE BEGIN SPI3_MspInit 1 */
 
@@ -108,12 +129,15 @@ void HAL_I2S_MspDeInit(I2S_HandleTypeDef* i2sHandle)
     /**I2S3 GPIO Configuration
     PA4     ------> I2S3_WS
     PC10     ------> I2S3_CK
+    PC11     ------> I2S3_SDI
     PC12     ------> I2S3_SDO
     */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4);
 
-    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10|GPIO_PIN_12);
+    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12);
 
+    /* I2S3 DMA DeInit */
+    HAL_DMA_DeInit(i2sHandle->hdmarx);
   /* USER CODE BEGIN SPI3_MspDeInit 1 */
 
   /* USER CODE END SPI3_MspDeInit 1 */

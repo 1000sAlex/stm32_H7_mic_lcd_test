@@ -163,8 +163,8 @@ void ST7789_RamWrite(uint16_t *pBuff, uint16_t Len, LCD_str *lcd)
     while (__HAL_SPI_GET_FLAG(lcd->spi_str, SPI_FLAG_TXP) == 0)
 	;
     lcd->LCD_dc_port->ODR |= lcd->LCD_dc_pin;
-    HAL_SPI_Transmit(lcd->spi_str, ((u8*) pBuff + 1), Len, 0xFFFF);
-    HAL_SPI_Transmit(lcd->spi_str, ((u8*) pBuff), Len, 0xFFFF);
+    //HAL_SPI_Transmit(lcd->spi_str, ((u8*) pBuff + 1), Len, 0xFFFF);
+    HAL_SPI_Transmit(lcd->spi_str, ((u8*) pBuff), Len * 2, 0xFFFF);
     }
 
 //==============================================================================
@@ -278,6 +278,19 @@ void ST7789_FillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color,
     ST7789_SetWindow(x, y, x + w - 1, y + h - 1, lcd);
     for (uint32_t i = 0; i < (h * w); i++)
 	ST7789_RamWrite(&color, 1, lcd);
+    }
+
+//==============================================================================
+// Процедура заполнения строчки цветом из буфера color
+//==============================================================================
+void ST7789_FillLine(int16_t x, uint16_t *color, LCD_str *lcd)
+    {
+    while (HAL_SPI_GetState(lcd->spi_str) != HAL_SPI_STATE_READY)
+	;
+    ST7789_SetWindow(x, 0, x, ST7789_Height, lcd);
+    ST7789_RamWrite(color, ST7789_Height, lcd);
+//    lcd->LCD_dc_port->ODR |= lcd->LCD_dc_pin;
+//    HAL_SPI_Transmit_DMA(lcd->spi_str, (u8*) color, ST7789_Height * 2);
     }
 //==============================================================================
 
